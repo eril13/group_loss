@@ -35,13 +35,15 @@ class Hyperparameters():
     def __init__(self, dataset_name='cub'):
         self.dataset_name = dataset_name
         if dataset_name == 'cub':
-            self.dataset_path = '../../datasets/CUB_200_2011'
+            self.dataset_path = '/content/drive/MyDrive/nlp_lab/Github/group_loss/dataset/CUB_200_2011'
         elif dataset_name == 'cars':
             self.dataset_path = '../../datasets/CARS'
         else:
             self.dataset_path = '../../datasets/Stanford'
         self.num_classes = {'cub': 100, 'cars': 98, 'Stanford': 11318}
+        #self.num_classes = {'cub': 10, 'cars': 98, 'Stanford': 11318}
         self.num_classes_iteration = {'cub': 6, 'cars': 5, 'Stanford': 10}
+        #self.num_classes_iteration = {'cub': 3, 'cars': 5, 'Stanford': 10}
         self.num_elemens_class = {'cub': 9, 'cars': 7, 'Stanford': 6}
         self.get_num_labeled_class = {'cub': 2, 'cars': 3, 'Stanford': 2}
         # self.learning_rate = 0.0002
@@ -71,7 +73,7 @@ class Hyperparameters():
         return self.weight_decay[self.dataset_name]
 
     def get_epochs(self):
-        return 70
+        return 1 #70
 
     def get_num_gtg_iterations(self):
         return 1
@@ -83,7 +85,7 @@ class Hyperparameters():
 parser = argparse.ArgumentParser(description='Training inception V2' +
                                              ' (BNInception) on CUB-200-2011 (cub), CARS 196 (cars) and Stanford Online Products (Stanford) with The Group Loss as described in ' +
                                              '`The Group Loss for Deep Metric Learning.`')
-dataset_name = 'cars'  # cub, cars or Stanford
+dataset_name = 'cub'#'cars'  # cub, cars or Stanford
 parser.add_argument('--dataset_name', default=dataset_name, type=str, help='The name of the dataset')
 hyperparams = Hyperparameters(dataset_name)
 parser.add_argument('--cub-root', default=hyperparams.get_path(), help='Path to dataset folder')
@@ -118,6 +120,7 @@ parser.add_argument('--is_apex', default=0, type=int,
                     help='if 1 use apex to do mixed precision training')
 
 args = parser.parse_args()
+print(args)
 
 file_name = '256_' + args.dataset_name + str(args.id) + '_' + args.net_type + '_' + str(args.lr_net) + '_' + str(args.weight_decay) + '_' + str(
     args.num_classes_iter) + '_' + str(args.num_elements_class) + '_' + str(args.num_labeled_points_class) + '_' + str(args.scaling_loss)
@@ -136,6 +139,7 @@ if not os.path.exists(save_folder_results):
 
 # load the pre-trained 
 model = net.load_net(dataset=args.dataset_name, net_type=args.net_type, nb_classes=args.nb_classes)
+print("model loaded")
 
 # define the loss and optimizer and put them to cuda
 model = model.to(device)
@@ -154,13 +158,16 @@ dl_tr, dl_ev, _, _ = data_utility.create_loaders(args.cub_root, args.nb_classes,
                                                                  args.num_classes_iter, args.num_elements_class,
                                                                  batch_size)
 
+print("start training")
 
 # train and evaluate the net
 best_accuracy = 0
 scores = []
 for e in range(1, args.nb_epochs + 1):
+    print(e)
     if e == 31:
         model.load_state_dict(torch.load(os.path.join(save_folder_nets, file_name + '.pth')))
+        print(model.state_dict)
         for g in opt.param_groups:
             g['lr'] = args.lr_net / 10.
 
